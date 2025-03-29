@@ -21,8 +21,29 @@ class GameLogic:
         
         # Marshmallow tracking
         self.marshmallows_eaten = 0
-        self.marshmallow_target = random.randint(8, 14)  # Random target between 8 and 14
-        print(f"Frank needs to eat {self.marshmallow_target} marshmallows for a bonus!")
+        self.next_bonus_target = random.randint(8, 14)  # Random target between 8 and 14
+        print(f"Frank needs to eat {self.next_bonus_target} marshmallows for a bonus!")
+        
+        self.direction_buffer = []  # Buffer for storing pending direction changes
+        self.max_buffer_size = 2    # Maximum number of buffered inputs
+        
+    def reset_game(self):
+        # Initialize snake at the center
+        center_x = self.GRID_WIDTH // 2
+        center_y = self.GRID_HEIGHT // 2
+        self.snake_positions = [
+            (center_x * self.SPACE_SIZE, center_y * self.SPACE_SIZE),
+            ((center_x - 1) * self.SPACE_SIZE, center_y * self.SPACE_SIZE),
+            ((center_x - 2) * self.SPACE_SIZE, center_y * self.SPACE_SIZE)
+        ]
+        self.snake_direction = "right"
+        self.food_positions = []
+        self.tree_positions = []
+        self.score = 0
+        self.game_running = True
+        self.death_cause = None
+        self.marshmallows_eaten = 0
+        self.direction_buffer = []  # Reset buffer when game resets
         
     def init_game(self):
         # Create snake in the middle of the screen
@@ -57,8 +78,8 @@ class GameLogic:
             y = random.randint(0, self.GRID_HEIGHT - 1) * self.SPACE_SIZE
             
             # Check if position is empty (no snake, food, or trees)
-            if (x, y) not in self.snake_positions and [x, y] not in self.food_positions and [x, y] not in self.tree_positions:
-                self.food_positions.append([x, y])
+            if (x, y) not in self.snake_positions and (x, y) not in self.food_positions and (x, y) not in self.tree_positions:
+                self.food_positions.append((x, y))  # Store as tuple
                 print(f"Spawned marshmallow at: ({x}, {y})")
                 break
                 
@@ -74,45 +95,72 @@ class GameLogic:
                 print(f"Spawned tree trunk at: ({x}, {y})")
                 break
                 
+    def change_direction(self, new_direction):
+        # Add new direction to buffer if it's not full
+        if len(self.direction_buffer) < self.max_buffer_size:
+            # Don't add if it's the same as the last buffered direction
+            if not self.direction_buffer or self.direction_buffer[-1] != new_direction:
+                self.direction_buffer.append(new_direction)
+
+    def process_direction_buffer(self):
+        # Process the next direction in the buffer if available
+        if self.direction_buffer:
+            next_direction = self.direction_buffer.pop(0)
+            # Only change direction if it's not opposite to current direction
+            if (next_direction == "left" and self.snake_direction != "right") or \
+               (next_direction == "right" and self.snake_direction != "left") or \
+               (next_direction == "up" and self.snake_direction != "down") or \
+               (next_direction == "down" and self.snake_direction != "up"):
+                self.snake_direction = next_direction
+
     def next_turn(self):
-        if not self.game_running:
-            return False
-            
-        # Update direction from next_direction
-        self.snake_direction = self.next_direction
-            
-        # Get current snake head position
-        x, y = self.snake_positions[0]
-        print(f"\nCurrent head position: ({x}, {y})")
-        print(f"Current direction: {self.snake_direction}")
+        # Process any buffered direction changes
+        self.process_direction_buffer()
         
-        # Update snake head position based on direction
+        # Get current head position
+        current_head = self.snake_positions[0]
+        x, y = current_head
+        
+        # Calculate new head position based on direction
         if self.snake_direction == "left":
-            x -= self.SPACE_SIZE
+            new_head = (x - self.SPACE_SIZE, y)
         elif self.snake_direction == "right":
-            x += self.SPACE_SIZE
+            new_head = (x + self.SPACE_SIZE, y)
         elif self.snake_direction == "up":
-            y -= self.SPACE_SIZE
-        elif self.snake_direction == "down":
-            y += self.SPACE_SIZE
+            new_head = (x, y - self.SPACE_SIZE)
+        else:  # down
+            new_head = (x, y + self.SPACE_SIZE)
             
-        print(f"New head position: ({x}, {y})")
-        print(f"Game bounds: 0 <= x < {self.GAME_WIDTH}, 0 <= y < {self.GAME_HEIGHT}")
-            
-        # Update snake positions
-        self.snake_positions.insert(0, (x, y))
-        
-        # Check for collisions first
-        if self.check_collision((x, y)):
-            self.game_over()
+        # Check for collisions
+        if self.check_collision(new_head):
+            self.game_running = False
             return False
             
-        # Check if food is eaten and handle tree spawning
-        food_eaten = self.eat_food()
+        # Move snake
+        self.snake_positions.insert(0, new_head)
+        
+        # Check if food was eaten
+        food_eaten = False
+        if new_head in self.food_positions:
+            self.food_positions.remove(new_head)
+            self.score += 1
+            self.marshmallows_eaten += 1
+            food_eaten = True
             
-        if not food_eaten:
-            # Remove tail if no food eaten
-            del self.snake_positions[-1]
+            # Spawn new food
+            self.spawn_food()
+            
+            # 30% chance to spawn a tree when eating food
+            if random.random() < 0.3:
+                self.spawn_tree()
+            
+            # Check for bonus marshmallows
+            if self.marshmallows_eaten >= self.next_bonus_target:
+                self.spawn_bonus_marshmallows()
+                self.marshmallows_eaten = 0
+                self.next_bonus_target = random.randint(8, 14)
+        else:
+            self.snake_positions.pop()
             
         return food_eaten
             
@@ -139,49 +187,10 @@ class GameLogic:
     def game_over(self):
         self.game_running = False
         
-    def change_direction(self, new_direction):
-        # Prevent 180-degree turns
-        if (new_direction == "left" and self.snake_direction != "right") or \
-           (new_direction == "right" and self.snake_direction != "left") or \
-           (new_direction == "up" and self.snake_direction != "down") or \
-           (new_direction == "down" and self.snake_direction != "up"):
-            print(f"Changing direction from {self.snake_direction} to {new_direction}")
-            self.next_direction = new_direction 
-
-    def eat_food(self):
-        """Handle food eating and return True if food was eaten"""
-        food_eaten = False
-        x, y = self.snake_positions[0]
-        
-        # Check for collisions first
-        if self.check_collision((x, y)):
-            self.game_over()
-            return False
-            
-        # Check if snake ate any food
-        for food_pos in self.food_positions[:]:
-            if x == food_pos[0] and y == food_pos[1]:
-                self.food_positions.remove(food_pos)
-                self.score += 1
-                self.marshmallows_eaten += 1
-                food_eaten = True
-                
-                # 30% chance to spawn a tree when eating
-                if random.random() < 0.3:
-                    self.spawn_tree()
-                
-                # Spawn new food
-                self.spawn_food()
-                
-                # Check if we've reached the marshmallow target
-                if self.marshmallows_eaten >= self.marshmallow_target:
-                    print(f"Frank ate {self.marshmallow_target} marshmallows! Spawning a bonus marshmallow!")
-                    self.spawn_food()  # Spawn bonus marshmallow
-                    self.spawn_tree()  # Always spawn a tree with bonus marshmallow
-                    self.marshmallows_eaten = 0  # Reset counter
-                    self.marshmallow_target = random.randint(8, 14)  # New random target
-                    print(f"New target: Eat {self.marshmallow_target} more marshmallows for another bonus!")
-                
-                break
-                
-        return food_eaten 
+    def spawn_bonus_marshmallows(self):
+        print(f"Frank ate {self.next_bonus_target} marshmallows! Spawning a bonus marshmallow!")
+        self.spawn_food()  # Spawn bonus marshmallow
+        self.spawn_tree()  # Always spawn a tree with bonus marshmallow
+        self.marshmallows_eaten = 0  # Reset counter
+        self.next_bonus_target = random.randint(8, 14)  # New random target
+        print(f"New target: Eat {self.next_bonus_target} more marshmallows for another bonus!") 
