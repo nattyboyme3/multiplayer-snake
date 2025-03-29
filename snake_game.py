@@ -24,7 +24,7 @@ class SnakeGame:
         self.SPEED_INCREASE = 0.95  # 5% faster (multiply by 0.95)
         self.FOOD_COLOR = "#FFFFFF"  # White for marshmallow
         self.MARSHMALLOW_SHADOW = "#E0E0E0"  # Light gray for shadow
-        self.BACKGROUND_COLOR = "#000000"
+        self.BACKGROUND_COLOR = "#8B4513"  # Saddle Brown (desaturated burnt orange)
         self.TEXT_COLOR = "#FFFFFF"
         
         print(f"Game dimensions: {self.GAME_WIDTH}x{self.GAME_HEIGHT}")
@@ -197,19 +197,20 @@ class SnakeGame:
         # Initialize game logic
         self.game_logic.init_game()
         
-        # Draw initial snake
+        # Draw background with desaturated burnt orange color
+        self.canvas.create_rectangle(0, 0, self.GAME_WIDTH, self.GAME_HEIGHT, 
+                                   fill=self.BACKGROUND_COLOR, outline=self.BACKGROUND_COLOR)
+        
+        # Draw snake
         self.snake_renderer.draw_snake(self.game_logic.snake_positions, self.game_logic.snake_direction)
         
-        # Draw initial food
+        # Draw all marshmallows
         for food_pos in self.game_logic.food_positions:
             self.marshmallow.draw(food_pos[0], food_pos[1])
             
-        # Draw initial trees
+        # Draw all tree trunks
         for tree_pos in self.game_logic.tree_positions:
             self.tree_trunk.draw(tree_pos[0], tree_pos[1])
-            
-        # Reset speed to initial value
-        self.SPEED = self.INITIAL_SPEED
         
         # Start the game loop
         self.next_turn()

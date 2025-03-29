@@ -69,8 +69,8 @@ class GameLogic:
             y = random.randint(0, self.GRID_HEIGHT - 1) * self.SPACE_SIZE
             
             # Check if position is empty (no snake, food, or trees)
-            if (x, y) not in self.snake_positions and [x, y] not in self.food_positions and [x, y] not in self.tree_positions:
-                self.tree_positions.append([x, y])
+            if (x, y) not in self.snake_positions and [x, y] not in self.food_positions and (x, y) not in self.tree_positions:
+                self.tree_positions.append((x, y))  # Store as tuple
                 print(f"Spawned tree trunk at: ({x}, {y})")
                 break
                 
