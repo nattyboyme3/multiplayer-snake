@@ -1,4 +1,9 @@
 import random
+from constants import (
+    GRID_WIDTH, GRID_HEIGHT, SPACE_SIZE, GAME_WIDTH, GAME_HEIGHT,
+    INITIAL_TREES_MIN, INITIAL_TREES_MAX, TREE_SPAWN_CHANCE,
+    BONUS_MARSHMALLOW_MIN, BONUS_MARSHMALLOW_MAX, MAX_DIRECTION_BUFFER
+)
 
 class GameLogic:
     def __init__(self, grid_width, grid_height, space_size):
@@ -6,8 +11,8 @@ class GameLogic:
         self.GRID_WIDTH = grid_width
         self.GRID_HEIGHT = grid_height
         self.SPACE_SIZE = space_size
-        self.GAME_WIDTH = self.GRID_WIDTH * self.SPACE_SIZE
-        self.GAME_HEIGHT = self.GRID_HEIGHT * self.SPACE_SIZE
+        self.GAME_WIDTH = GAME_WIDTH
+        self.GAME_HEIGHT = GAME_HEIGHT
         
         # Game variables
         self.snake_direction = "right"
@@ -21,11 +26,11 @@ class GameLogic:
         
         # Marshmallow tracking
         self.marshmallows_eaten = 0
-        self.next_bonus_target = random.randint(8, 14)  # Random target between 8 and 14
+        self.next_bonus_target = random.randint(BONUS_MARSHMALLOW_MIN, BONUS_MARSHMALLOW_MAX)
         print(f"Frank needs to eat {self.next_bonus_target} marshmallows for a bonus!")
         
         self.direction_buffer = []  # Buffer for storing pending direction changes
-        self.max_buffer_size = 2    # Maximum number of buffered inputs
+        self.max_buffer_size = MAX_DIRECTION_BUFFER    # Maximum number of buffered inputs
         
     def reset_game(self):
         # Initialize snake at the center
@@ -65,8 +70,8 @@ class GameLogic:
         self.tree_positions = []
         self.spawn_food()
         
-        # Spawn 5-8 initial trees
-        num_initial_trees = random.randint(5, 8)
+        # Spawn initial trees
+        num_initial_trees = random.randint(INITIAL_TREES_MIN, INITIAL_TREES_MAX)
         print(f"Spawning {num_initial_trees} initial trees...")
         for _ in range(num_initial_trees):
             self.spawn_tree()
@@ -150,15 +155,15 @@ class GameLogic:
             # Spawn new food
             self.spawn_food()
             
-            # 30% chance to spawn a tree when eating food
-            if random.random() < 0.3:
+            # Chance to spawn a tree when eating food
+            if random.random() < TREE_SPAWN_CHANCE:
                 self.spawn_tree()
             
             # Check for bonus marshmallows
             if self.marshmallows_eaten >= self.next_bonus_target:
                 self.spawn_bonus_marshmallows()
                 self.marshmallows_eaten = 0
-                self.next_bonus_target = random.randint(8, 14)
+                self.next_bonus_target = random.randint(BONUS_MARSHMALLOW_MIN, BONUS_MARSHMALLOW_MAX)
         else:
             self.snake_positions.pop()
             
@@ -192,5 +197,5 @@ class GameLogic:
         self.spawn_food()  # Spawn bonus marshmallow
         self.spawn_tree()  # Always spawn a tree with bonus marshmallow
         self.marshmallows_eaten = 0  # Reset counter
-        self.next_bonus_target = random.randint(8, 14)  # New random target
+        self.next_bonus_target = random.randint(BONUS_MARSHMALLOW_MIN, BONUS_MARSHMALLOW_MAX)  # New random target
         print(f"New target: Eat {self.next_bonus_target} more marshmallows for another bonus!") 
