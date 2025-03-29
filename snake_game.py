@@ -24,7 +24,7 @@ class SnakeGame:
         self.SPEED_INCREASE = 0.95  # 5% faster (multiply by 0.95)
         self.FOOD_COLOR = "#FFFFFF"  # White for marshmallow
         self.MARSHMALLOW_SHADOW = "#E0E0E0"  # Light gray for shadow
-        self.BACKGROUND_COLOR = "#8B4513"  # Saddle Brown (desaturated burnt orange)
+        self.BACKGROUND_COLOR = "#7A4E2B"  # Desaturated burnt orange (20% less saturation)
         self.TEXT_COLOR = "#FFFFFF"
         
         print(f"Game dimensions: {self.GAME_WIDTH}x{self.GAME_HEIGHT}")
@@ -48,13 +48,23 @@ class SnakeGame:
         self.tree_trunk = TreeTrunk(self.canvas, self.SPACE_SIZE)
         
         # Create score display (initially hidden)
-        self.score_label = tk.Label(
+        self.score_frame = tk.Frame(
             self.window,
-            text="Snake Game",
-            font=("consolas", 40, "bold"),
-            bg=self.BACKGROUND_COLOR,
-            fg=self.TEXT_COLOR
+            bg="#5C3D21",  # Darker version of background for contrast
+            bd=2,
+            relief="raised"
         )
+        
+        self.score_label = tk.Label(
+            self.score_frame,
+            text="Score: 0",
+            font=("Helvetica", 24, "bold"),
+            bg="#5C3D21",  # Match frame background
+            fg="#FFE4B5",  # Warm cream color for better harmony
+            padx=20,
+            pady=10
+        )
+        self.score_label.pack()
         
         # Create game over text
         self.game_over_text = tk.Label(
@@ -177,9 +187,9 @@ class SnakeGame:
         # Clear the canvas
         self.canvas.delete("all")
         
-        # Show and reset score label
-        self.score_label.pack(pady=20)
-        self.score_label.config(text="Score: 0", font=("consolas", 20))
+        # Show and reset score frame and label
+        self.score_frame.pack(pady=10)
+        self.score_label.config(text="Score: 0")
         
         # Reset speed to initial value
         self.SPEED = self.INITIAL_SPEED
@@ -251,8 +261,8 @@ class SnakeGame:
         # Clear the canvas but keep it
         self.canvas.delete("all")
         
-        # Hide the score label
-        self.score_label.pack_forget()
+        # Hide the score frame
+        self.score_frame.pack_forget()
         
         # Get the appropriate message based on death cause
         if self.game_logic.death_cause == "wall":
