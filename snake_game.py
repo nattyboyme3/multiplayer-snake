@@ -3,7 +3,7 @@ from tkinter import messagebox
 import random
 from game_logic import GameLogic
 from snake_renderer import SnakeRenderer
-from game_over_messages import GAME_OVER_MESSAGES, TREE_COLLISION_MESSAGES, WALL_COLLISION_MESSAGES, SELF_COLLISION_MESSAGES
+from game_over_messages import WALL_COLLISION_MESSAGES, TREE_COLLISION_MESSAGES, SELF_COLLISION_MESSAGES
 from marshmallow import Marshmallow
 from tree_trunk import TreeTrunk
 
@@ -107,9 +107,9 @@ class SnakeGame:
         center_x = self.GAME_WIDTH // 2
         center_y = self.GAME_HEIGHT // 2
         
-        # Draw title
+        # Draw title with more space at the top
         self.canvas.create_text(
-            center_x, center_y - 100,
+            center_x, center_y - 150,  # Moved up from -100 to -150
             text="Frank's Marshmallow Adventure",
             fill=self.TEXT_COLOR,
             font=("consolas", 36, "bold")
@@ -117,23 +117,24 @@ class SnakeGame:
         
         # Draw welcome message with story
         welcome_message = (
-            "Frank is a hungry snake with a sweet tooth!\n\n"
-            "He's on a quest to collect marshmallows to make\n"
-            "the perfect s'more for his forest friends.\n\n"
-            "Use arrow keys to help Frank gather marshmallows.\n"
-            "Each marshmallow makes him faster and happier!\n"
-            "Collect enough to unlock special bonus treats!"
+            "Frank is a snake who's convinced himself that\n"
+            "marshmallows are the key to happiness.\n\n"
+            "Despite having no hands or ability to make s'mores,\n"
+            "he's determined to collect them anyway.\n\n"
+            "Use arrow keys to help Frank in his quest.\n"
+            "Each marshmallow makes him slightly faster\n"
+            "and marginally more delusional."
         )
         self.canvas.create_text(
-            center_x, center_y,
+            center_x, center_y - 20,  # Moved up from center_y to center_y - 20
             text=welcome_message,
             fill=self.TEXT_COLOR,
             font=("consolas", 18),
             justify="center"
         )
         
-        # Create start button
-        button_y = center_y + 100
+        # Create start button with more space from the story
+        button_y = center_y + 120  # Moved down from +80 to +120
         self.start_button = tk.Button(
             self.window,
             text="Start Adventure",
@@ -146,8 +147,8 @@ class SnakeGame:
         )
         self.canvas.create_window(center_x, button_y, window=self.start_button)
         
-        # Draw a small snake icon
-        snake_y = center_y + 200
+        # Draw a small snake icon with more space from the button
+        snake_y = center_y + 220  # Moved down from +180 to +220
         self.canvas.create_oval(
             center_x - 40, snake_y - 10,
             center_x - 20, snake_y + 10,
@@ -197,7 +198,7 @@ class SnakeGame:
         self.game_logic.init_game()
         
         # Draw initial snake
-        self.snake_renderer.draw(self.game_logic.snake_positions)
+        self.snake_renderer.draw_snake(self.game_logic.snake_positions, self.game_logic.snake_direction)
         
         # Draw initial food
         for food_pos in self.game_logic.food_positions:
@@ -221,7 +222,7 @@ class SnakeGame:
         self.canvas.delete("all")
         
         # Draw snake
-        self.snake_renderer.draw(self.game_logic.snake_positions)
+        self.snake_renderer.draw_snake(self.game_logic.snake_positions, self.game_logic.snake_direction)
         
         # Draw all food
         for food_pos in self.game_logic.food_positions:
@@ -252,15 +253,13 @@ class SnakeGame:
         # Hide the score label
         self.score_label.pack_forget()
         
-        # Get a random game over message based on how Frank lost
-        if self.game_logic.game_over_type == "tree":
-            game_over_message = random.choice(TREE_COLLISION_MESSAGES)
-        elif self.game_logic.game_over_type == "wall":
+        # Get the appropriate message based on death cause
+        if self.game_logic.death_cause == "wall":
             game_over_message = random.choice(WALL_COLLISION_MESSAGES)
-        elif self.game_logic.game_over_type == "self":
+        elif self.game_logic.death_cause == "tree":
+            game_over_message = random.choice(TREE_COLLISION_MESSAGES)
+        else:  # self collision
             game_over_message = random.choice(SELF_COLLISION_MESSAGES)
-        else:
-            game_over_message = "Frank had an unexpected adventure!"
         
         # Calculate center positions
         center_x = self.GAME_WIDTH // 2

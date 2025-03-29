@@ -17,9 +17,7 @@ class GameLogic:
         self.food_positions = []  # Now a list to store multiple food positions
         self.tree_positions = []  # List to store tree trunk positions
         self.game_running = True
-        
-        # Game over tracking
-        self.game_over_type = None  # "wall", "self", or "tree"
+        self.death_cause = None  # Track how Frank died
         
         # Marshmallow tracking
         self.marshmallows_eaten = 0
@@ -41,10 +39,16 @@ class GameLogic:
         for i, pos in enumerate(self.snake_positions):
             print(f"Segment {i}: {pos}")
         
-        # Create initial food and clear trees
+        # Create initial food and trees
         self.food_positions = []
         self.tree_positions = []
         self.spawn_food()
+        
+        # Spawn 5-8 initial trees
+        num_initial_trees = random.randint(5, 8)
+        print(f"Spawning {num_initial_trees} initial trees...")
+        for _ in range(num_initial_trees):
+            self.spawn_tree()
         
     def spawn_food(self):
         """Spawn a single marshmallow in an empty spot"""
@@ -99,61 +103,37 @@ class GameLogic:
         self.snake_positions.insert(0, (x, y))
         
         # Check for collisions first
-        if self.check_collisions():
+        if self.check_collision((x, y)):
             self.game_over()
             return False
             
-        # Then check if food is eaten
-        food_eaten = False
-        for food_pos in self.food_positions[:]:  # Use slice copy to safely modify during iteration
-            if x == food_pos[0] and y == food_pos[1]:
-                self.score += 1
-                self.marshmallows_eaten += 1
-                self.food_positions.remove(food_pos)
-                food_eaten = True
-                
-                # Check if we've hit our target for bonus marshmallow
-                if self.marshmallows_eaten == self.marshmallow_target:
-                    print(f"Frank ate {self.marshmallow_target} marshmallows! Spawning a bonus marshmallow!")
-                    self.spawn_food()  # Spawn an extra marshmallow
-                    self.spawn_tree()  # Spawn a new tree trunk
-                    self.marshmallow_target = random.randint(8, 14)  # Set new target
-                    print(f"New target: Eat {self.marshmallow_target} more marshmallows for another bonus!")
-                
-                # Always spawn a new marshmallow to replace the eaten one
-                self.spawn_food()
-                
+        # Check if food is eaten and handle tree spawning
+        food_eaten = self.eat_food()
+            
         if not food_eaten:
             # Remove tail if no food eaten
             del self.snake_positions[-1]
             
         return food_eaten
             
-    def check_collisions(self):
-        x, y = self.snake_positions[0]
-        
+    def check_collision(self, head_position):
+        """Check if the snake has collided with anything"""
         # Check wall collision
-        if x < 0 or x >= self.GAME_WIDTH or y < 0 or y >= self.GAME_HEIGHT:
-            print(f"Wall collision detected at x={x}, y={y}")
-            print(f"Game bounds: 0 <= x < {self.GAME_WIDTH}, 0 <= y < {self.GAME_HEIGHT}")
-            self.game_over_type = "wall"
+        if (head_position[0] < 0 or head_position[0] >= self.GAME_WIDTH or
+            head_position[1] < 0 or head_position[1] >= self.GAME_HEIGHT):
+            self.death_cause = "wall"
+            return True
+            
+        # Check tree collision
+        if head_position in self.tree_positions:
+            self.death_cause = "tree"
             return True
             
         # Check self collision
-        for body_part in self.snake_positions[1:]:
-            if x == body_part[0] and y == body_part[1]:
-                print(f"Self collision detected at x={x}, y={y}")
-                print("Snake positions:", self.snake_positions)
-                self.game_over_type = "self"
-                return True
-                
-        # Check tree collision
-        for tree_pos in self.tree_positions:
-            if x == tree_pos[0] and y == tree_pos[1]:
-                print(f"Tree collision detected at x={x}, y={y}")
-                self.game_over_type = "tree"
-                return True
-                
+        if head_position in self.snake_positions[1:]:
+            self.death_cause = "self"
+            return True
+            
         return False
         
     def game_over(self):
@@ -167,3 +147,41 @@ class GameLogic:
            (new_direction == "down" and self.snake_direction != "up"):
             print(f"Changing direction from {self.snake_direction} to {new_direction}")
             self.next_direction = new_direction 
+
+    def eat_food(self):
+        """Handle food eating and return True if food was eaten"""
+        food_eaten = False
+        x, y = self.snake_positions[0]
+        
+        # Check for collisions first
+        if self.check_collision((x, y)):
+            self.game_over()
+            return False
+            
+        # Check if snake ate any food
+        for food_pos in self.food_positions[:]:
+            if x == food_pos[0] and y == food_pos[1]:
+                self.food_positions.remove(food_pos)
+                self.score += 1
+                self.marshmallows_eaten += 1
+                food_eaten = True
+                
+                # 30% chance to spawn a tree when eating
+                if random.random() < 0.3:
+                    self.spawn_tree()
+                
+                # Spawn new food
+                self.spawn_food()
+                
+                # Check if we've reached the marshmallow target
+                if self.marshmallows_eaten >= self.marshmallow_target:
+                    print(f"Frank ate {self.marshmallow_target} marshmallows! Spawning a bonus marshmallow!")
+                    self.spawn_food()  # Spawn bonus marshmallow
+                    self.spawn_tree()  # Always spawn a tree with bonus marshmallow
+                    self.marshmallows_eaten = 0  # Reset counter
+                    self.marshmallow_target = random.randint(8, 14)  # New random target
+                    print(f"New target: Eat {self.marshmallow_target} more marshmallows for another bonus!")
+                
+                break
+                
+        return food_eaten 
