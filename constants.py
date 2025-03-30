@@ -10,8 +10,8 @@ GAME_WIDTH = GRID_WIDTH * SPACE_SIZE
 GAME_HEIGHT = GRID_HEIGHT * SPACE_SIZE
 
 # Game Speed
-INITIAL_SPEED = 150  # Frank starts slower (was 100)
-SPEED_INCREASE = 0.95  # 5% faster (multiply by 0.95)
+INITIAL_SPEED = 160  # Frank starts slower (was 100)
+SPEED_INCREASE = 0.97  # 5% faster (multiply by 0.97)
 
 # Colors
 FOOD_COLOR = "#FFFFFF"  # White for marshmallow
