@@ -1,7 +1,7 @@
 """
 Main game logic class that coordinates all game components
 """
-from constants import GAME_WIDTH, GAME_HEIGHT
+from constants import GAME_WIDTH, GAME_HEIGHT, FLASH_DURATION
 from .snake_state import SnakeState
 from .food_manager import FoodManager
 from .tree_manager import TreeManager
@@ -14,6 +14,9 @@ class GameLogic:
         self.food = FoodManager()
         self.trees = TreeManager()
         self._score_manager = ScoreManager()
+        self.last_food_eaten = None
+        self.last_super_eaten = False
+        self.FLASH_DURATION = FLASH_DURATION
 
     def reset_game(self):
         """Reset all game components"""
@@ -21,12 +24,14 @@ class GameLogic:
         self.food.reset()
         self.trees.reset()
         self._score_manager.reset()
+        self.last_food_eaten = None
+        self.last_super_eaten = False
 
     def init_game(self):
         """Initialize the game"""
         self.snake.init_game()
         self.food.spawn_food(self.snake.snake_positions, self.trees.tree_positions)
-        self.trees.spawn_initial_trees(self.snake.snake_positions, self.food.food_positions)
+        self.trees.spawn_initial_trees(self.snake.snake_positions, self.food.all_food_positions)
 
     def change_direction(self, new_direction):
         """Change snake direction"""
@@ -45,21 +50,41 @@ class GameLogic:
             return False
             
         # Move snake
-        food_eaten = self.food.check_food_eaten(new_head)
+        food_eaten, is_super, points, growth = self.food.check_food_eaten(new_head)
         self.snake.move(grow=food_eaten)
         
         if food_eaten:
-            self._score_manager.increment_score()
+            # Store the eaten food position and type
+            self.last_food_eaten = new_head
+            self.last_super_eaten = is_super
+            
+            # Add points
+            for _ in range(points):
+                self._score_manager.increment_score()
+            
+            # Grow snake if needed
+            if growth > 1:
+                for _ in range(growth - 1):
+                    self.snake.move(grow=True)
+            
+            # Spawn new food
             self.food.spawn_food(self.snake.snake_positions, self.trees.tree_positions)
             
             # Chance to spawn a tree when eating food
             if self.trees.should_spawn_tree():
-                self.trees.spawn_tree(self.snake.snake_positions, self.food.food_positions)
+                self.trees.spawn_tree(self.snake.snake_positions, self.food.all_food_positions)
             
             # Check for bonus marshmallows
             if self.food.should_spawn_bonus():
-                self.food.spawn_bonus_marshmallows(self.snake.snake_positions, self.trees.tree_positions)
-                self.trees.spawn_tree(self.snake.snake_positions, self.food.food_positions)
+                bonus_points = self.food.spawn_bonus_marshmallows(self.snake.snake_positions, self.trees.tree_positions)
+                # Add bonus points for reaching the goal
+                for _ in range(bonus_points):
+                    self._score_manager.increment_score()
+                self.trees.spawn_tree(self.snake.snake_positions, self.food.all_food_positions)
+        else:
+            # Clear last food eaten if no food was eaten this turn
+            self.last_food_eaten = None
+            self.last_super_eaten = False
             
         return food_eaten
 
@@ -97,7 +122,11 @@ class GameLogic:
 
     @property
     def food_positions(self):
-        return self.food.food_positions
+        return self.food.all_food_positions
+
+    @property
+    def super_food_positions(self):
+        return self.food.super_food_positions
 
     @property
     def tree_positions(self):
@@ -113,4 +142,4 @@ class GameLogic:
 
     @property
     def death_cause(self):
-        return self._score_manager.get_death_cause() 
+        return self._score_manager.get_death_cause()

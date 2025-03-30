@@ -198,4 +198,16 @@ class GameLogic:
         self.spawn_tree()  # Always spawn a tree with bonus marshmallow
         self.marshmallows_eaten = 0  # Reset counter
         self.next_bonus_target = random.randint(BONUS_MARSHMALLOW_MIN, BONUS_MARSHMALLOW_MAX)  # New random target
-        print(f"New target: Eat {self.next_bonus_target} more marshmallows for another bonus!") 
+        print(f"New target: Eat {self.next_bonus_target} more marshmallows for another bonus!")
+
+    @property
+    def food_positions(self):
+        return self.food_positions
+
+    @property
+    def super_food_positions(self):
+        return self.food_positions
+
+    @property
+    def tree_positions(self):
+        return self.tree_positions 
